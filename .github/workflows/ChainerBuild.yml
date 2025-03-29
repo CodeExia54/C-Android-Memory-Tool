@@ -1,0 +1,36 @@
+name: Build Memory Chainer Tool
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y g++
+        
+    - name: Compile Memory Tool and Chainer
+      run: |
+        g++ -std=c++17 -pthread -Wall -Wextra MemoryTool.cpp chainer.cpp -o MemoryChainer
+        
+    - name: Verify binary
+      run: |
+        file MemoryChainer
+        echo "Running test execution..."
+        ./MemoryChainer <<< $'com.test.app\n3\n256\n' || echo "Program executed (exit code $?)"
+        
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MemoryChainer-Linux
+        path: MemoryChainer
+        if-no-files-found: error
