@@ -8,10 +8,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # Explicitly using Ubuntu 22.04
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4  # Updated to v4
     
     - name: Install dependencies
       run: sudo apt-get update && sudo apt-get install -y g++
@@ -22,10 +22,11 @@ jobs:
     - name: Verify binary
       run: |
         file MemoryTool
-        ./MemoryTool || echo "Program executed (may exit normally)"
+        ./MemoryTool || echo "Program executed (exit code $?)"
         
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # Updated to v4
       with:
         name: MemoryTool-Linux
         path: MemoryTool
+        if-no-files-found: error
