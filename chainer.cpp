@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <sstream>
 #include <ctime>
+#include <cstdlib>
 
 struct ChainNode {
     uint64_t address;
@@ -30,8 +31,8 @@ private:
     
 public:
     MemoryChainer(const std::string& pkg) : packageName(pkg) {
-        memTool.initXMemoryTools(const_cast<char*>(pkg.c_str()), MODE_ROOT);
-        is64bit = true; // Assuming 64-bit as per your requirement
+        memTool.initXMemoryTools(const_cast<char*>(pkg.c_str()), const_cast<char*>("MODE_ROOT"));
+        is64bit = true; // Assuming 64-bit as per requirement
     }
     
     void setParameters(int d, uint64_t offset) {
@@ -46,7 +47,9 @@ public:
         for (int i = 0; i < count; i++) {
             ChainNode* node = new ChainNode();
             node->address = results->addr;
-            node->value = strtoull(memTool.GetAddressValue(results->addr, results->type), nullptr, 10);
+            char* valStr = memTool.GetAddressValue(results->addr, results->type);
+            node->value = strtoull(valStr, nullptr, 10);
+            free(valStr);
             
             buildChain(node, 1);
             chains.push_back(node);
@@ -59,11 +62,15 @@ public:
         
         uint64_t baseValue = parent->value;
         
+        // Create temporary strings for the search
+        std::string fromStr = std::to_string(baseValue);
+        std::string toStr = std::to_string(baseValue + maxOffset);
+        
         // Search in nearby memory
         memTool.SetSearchRange(ALL);
         memTool.RangeMemorySearch(
-            std::to_string(baseValue).c_str(),
-            std::to_string(baseValue + maxOffset).c_str(),
+            const_cast<char*>(fromStr.c_str()),
+            const_cast<char*>(toStr.c_str()),
             is64bit ? TYPE_QWORD : TYPE_DWORD
         );
         
@@ -75,7 +82,9 @@ public:
             if (offset <= maxOffset) {
                 ChainNode* child = new ChainNode();
                 child->address = children->addr;
-                child->value = strtoull(memTool.GetAddressValue(children->addr, children->type), nullptr, 10);
+                char* childValStr = memTool.GetAddressValue(children->addr, children->type);
+                child->value = strtoull(childValStr, nullptr, 10);
+                free(childValStr);
                 
                 parent->offsets[offset] = child;
                 buildChain(child, currentDepth + 1);
@@ -151,11 +160,14 @@ int main() {
     std::cout << "Enter max offset (e.g., 256): ";
     std::cin >> maxOffset;
     
-    // Initialize with some search results (you'd replace this with actual search)
+    // Initialize with some search results
     MemoryTool tempTool;
-    tempTool.initXMemoryTools(const_cast<char*>(packageName.c_str()), MODE_ROOT);
+    tempTool.initXMemoryTools(const_cast<char*>(packageName.c_str()), const_cast<char*>("MODE_ROOT"));
     tempTool.SetSearchRange(ALL);
-    tempTool.MemorySearch("12345", TYPE_DWORD); // Example search
+    
+    // Create temporary string for search value
+    std::string searchValue = "12345";
+    tempTool.MemorySearch(const_cast<char*>(searchValue.c_str()), TYPE_DWORD);
     
     MemoryChainer chainer(packageName);
     chainer.setParameters(depth, maxOffset);
